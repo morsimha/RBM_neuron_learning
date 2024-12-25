@@ -1,15 +1,29 @@
 import numpy as np
 from sklearn.datasets import load_iris
 
-# The sigmoid function takes an input 'x' and returns the sigmoid of 'x'.
-# The sigmoid function is defined as 1 / (1 + exp(-x)), where exp is the exponential function.
-# it maps any real-valued number into the range (0, 1), making it useful for probability estimation.
+# Sigmoid Activation Function
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+# Energy Function
+def energy(v, h, a, b, J):
+    """
+    Calculate the energy of the Boltzmann Machine.
+    v: Visible layer (array of visible neuron states)
+    h: Hidden layer (array of hidden neuron states)
+    a: Biases for visible neurons
+    b: Biases for hidden neurons
+    J: Weights between visible and hidden neurons
+    """
+    term1 = -np.sum(a * v)  # Bias of visible neurons
+    term2 = -np.sum(b * h)  # Bias of hidden neurons
+    term3 = -np.sum(v @ J * h)  # Interaction between visible and hidden neurons
+    
+    return term1 + term2 + term3
+
+# Load Iris dataset
 orig_iris = load_iris()
 iris = load_iris()
-print("before:" ,iris.data[0])
 
 # Discretize each attribute of every flower into one of three options: short, medium, long
 def discretize_attributes(data):
@@ -25,39 +39,31 @@ def discretize_attributes(data):
 
 iris.data = discretize_attributes(iris.data)
 
-# Print each attribute's original values and their discretized values
-for i in range(iris.data.shape[1]):
-    original_column = orig_iris.data[:, i]
-    discretized_column = iris.data[:, i]
-    print(f"Attribute {i + 1} original values: {original_column}")
-    print(f"Attribute {i + 1} discretized values: {discretized_column}")
-
-print(iris.data[5])
+# Select a sample from the dataset
 input_sample = iris.data[5]
 
-# # Normalizing the input sample
-# input_sample = (input_sample - input_sample.min()) / (input_sample.max() - input_sample.min())
+# Initialize parameters
+np.random.seed(42)
+visible_neurons = input_sample.shape[0]  # 4 visible neurons (4 attributes)
+hidden_neurons = 3  # 3 hidden neurons as per the architecture
 
-#sets the seed for NumPy's random number generator to 42, ensuring that the results are reproducible.
-np.random.seed(42)  # הגדרת seed כדי שהתוצאות יהיו שחזורות
-# 3 neurons in the hidden layer
-weights = np.random.rand(input_sample.shape[0], 3)  # נניח שיש לנו 3 נוירונים בשכבה החבויה
+# Initialize biases and weights
+a = np.random.rand(visible_neurons)  # Bias for visible neurons
+b = np.random.rand(hidden_neurons)   # Bias for hidden neurons
+J = np.random.rand(visible_neurons, hidden_neurons)  # Weights between visible and hidden
 
-# Randomize the hidden layer values to be between 0 and 2
-hidden_layer = np.random.randint(0, 3, size=(input_sample.shape[0], 3))
+# Initialize neuron states randomly
+v = input_sample  # Visible neurons set to the input sample
+h = np.random.randint(0, 2, size=hidden_neurons)  # Hidden neurons initialized randomly (binary states)
 
-# # calculate the hidden layer by taking the dot product of the input sample and the weights, and then applying the sigmoid function.
-# hidden_layer = sigmoid(np.dot(input_sample, weights))
+# Print biases and synapse values
+print("Visible Neuron Biases (a):")
+print(a)
+print("\nHidden Neuron Biases (b):")
+print(b)
+print("\nSynapse Weights (J):")
+print(J)
 
-# # calculate the reconstructed input by taking the dot product of the hidden layer and the weights, and then applying the sigmoid function.
-# reconstructed_input = sigmoid(np.dot(hidden_layer, weights.T))
-
-# # calculate the mean squared error (MSE) between the input sample and the reconstructed input.
-# mse = np.mean((input_sample - reconstructed_input) ** 2)
-
-print("Input Sample:", input_sample)
-print("Weights:", weights)
-print('\n')
-print("Hidden Layer:", hidden_layer)
-# print("Reconstructed Input:", reconstructed_input)
-# print("Mean Squared Error (MSE):", mse)
+# Calculate energy
+current_energy = energy(v, h, a, b, J)
+print(f"\nInitial Energy of the System: {current_energy}")
