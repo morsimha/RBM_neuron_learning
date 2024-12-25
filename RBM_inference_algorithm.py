@@ -64,6 +64,38 @@ print(b)
 print("\nSynapse Weights (J):")
 print(J)
 
-# Calculate energy
-current_energy = energy(v, h, a, b, J)
-print(f"\nInitial Energy of the System: {current_energy}")
+# Print the energy function with variable placeholders
+energy_formula = "E(v, h) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(sum(J_ij * v_i * h_j))"
+print("\nEnergy Function Formula:")
+print(energy_formula)
+
+# Inference Algorithm
+T = 1.0  # Initial temperature
+temp_decay = 0.95  # Temperature decay factor
+iterations = 100
+
+for iteration in range(iterations):
+    # Update hidden neurons
+    for j in range(hidden_neurons):
+        delta_E = b[j] + np.sum(J[:, j] * v)
+        h[j] = 1 if np.random.rand() < sigmoid(delta_E / T) else 0
+    
+    # Update visible neurons
+    for i in range(visible_neurons):
+        delta_E = a[i] + np.sum(J[i, :] * h)
+        v[i] = 1 if np.random.rand() < sigmoid(delta_E / T) else 0
+    
+    # Calculate current energy
+    current_energy = energy(v, h, a, b, J)
+    print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {T}")
+    
+    # Reduce temperature
+    T *= temp_decay
+    
+    # Check convergence (simple energy stabilization check)
+    if T < 0.01:
+        break
+
+print("\nFinal Visible State:", v)
+print("Final Hidden State:", h)
+print(f"Final Energy: {current_energy}")
