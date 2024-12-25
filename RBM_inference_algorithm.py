@@ -99,3 +99,13 @@ for iteration in range(iterations):
 print("\nFinal Visible State:", v)
 print("Final Hidden State:", h)
 print(f"Final Energy: {current_energy}")
+
+# Prediction Step
+species_mapping = {
+    (1, 0, 0): 'setosa',
+    (0, 1, 0): 'versicolor',
+    (0, 0, 1): 'virginica'
+}
+
+predicted_species = species_mapping.get(tuple(h), 'Unknown')
+print(f"Predicted Iris Species: {predicted_species}")
