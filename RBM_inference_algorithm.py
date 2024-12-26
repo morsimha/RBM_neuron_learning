@@ -16,8 +16,17 @@ def energy(v, h, o, a, b, c, J, W):
     term3 = -np.sum(c * o)
     term4 = -np.sum(v @ J * h)
     term5 = -np.sum(h @ W * o)
+    term1 = -np.sum(a * v)
+    term2 = -np.sum(b * h)
+    term3 = -np.sum(c * o)
+    term4 = -np.sum(v @ J * h)
+    term5 = -np.sum(h @ W * o)
     return term1 + term2 + term3 + term4 + term5
 
+# -----------------------------
+# אתחול (Initialization)
+# -----------------------------
+# 1. קלט הנתונים והכנת הפרמטרים הדרושים.
 # -----------------------------
 # אתחול (Initialization)
 # -----------------------------
@@ -28,9 +37,19 @@ iris = load_iris()
 def discretize_attributes(data):
     discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
     names = ["sepal length", "sepal width", "petal length", "petal width"]
+    discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
+    names = ["sepal length", "sepal width", "petal length", "petal width"]
     for i in range(data.shape[1]):
         column = data[:, i]
         thresholds = np.percentile(column, [33.33, 66.67])
+        categories = np.digitize(column, thresholds)
+        for j, value in enumerate(categories):
+            if value == 0:
+                discretized_data[j, i * 2:i * 2 + 2] = [0, 0]
+            elif value == 1:
+                discretized_data[j, i * 2:i * 2 + 2] = [0, 1]
+            else:
+                discretized_data[j, i * 2:i * 2 + 2] = [1, 0]
         categories = np.digitize(column, thresholds)
         for j, value in enumerate(categories):
             if value == 0:
@@ -121,6 +140,9 @@ for iteration in range(iterations):
     if Temprature < 0.01:
         break
 
+# -----------------------------
+# תחנה עצירה (Stop Condition)
+# -----------------------------
 # -----------------------------
 # תחנה עצירה (Stop Condition)
 # -----------------------------
