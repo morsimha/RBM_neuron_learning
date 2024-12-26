@@ -10,18 +10,20 @@ import sys
 # 2. שימוש בפרמטרים a, b, J המתקבלים מאלגוריתם הלמידה.
 
 # Energy Function
-def energy(v, h, o, a, b, c, J, W):
-    term1 = -np.sum(a * v)
-    term2 = -np.sum(b * h)
-    term3 = -np.sum(c * o)
-    term4 = -np.sum(v @ J * h)
-    term5 = -np.sum(h @ W * o)
-    term1 = -np.sum(a * v)
-    term2 = -np.sum(b * h)
-    term3 = -np.sum(c * o)
-    term4 = -np.sum(v @ J * h)
-    term5 = -np.sum(h @ W * o)
-    return term1 + term2 + term3 + term4 + term5
+def energy(v, h, a, b, J):
+    """
+    Calculate the energy of the Boltzmann Machine.
+    v: Visible layer (array of visible neuron states)
+    h: Hidden layer (array of hidden neuron states)
+    a: Biases for visible neurons
+    b: Biases for hidden neurons
+    J: Weights between visible and hidden neurons
+    """
+    term1 = -np.sum(a * v)  # Bias of visible neurons
+    term2 = -np.sum(b * h)  # Bias of hidden neurons
+    term3 = -np.sum(v @ J * h)  # Interaction between visible and hidden neurons
+    
+    return term1 + term2 + term3
 
 # -----------------------------
 # אתחול (Initialization)
@@ -35,8 +37,6 @@ orig_iris = load_iris()
 iris = load_iris()
 
 def discretize_attributes(data):
-    discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
-    names = ["sepal length", "sepal width", "petal length", "petal width"]
     discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
     names = ["sepal length", "sepal width", "petal length", "petal width"]
     for i in range(data.shape[1]):
@@ -72,7 +72,7 @@ visible_bias = np.random.rand(visible_neurons_amount)
 hidden_bias = np.random.rand(hidden_neurons_amount)
 output_bias = np.random.rand(output_neurons_amount)
 
-left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) #why always 52?
+left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) * 0.1
 print(left_synapses)
 
 # left_synapses = np.zeros((visible_neurons_amount, hidden_neurons_amount))
@@ -88,7 +88,7 @@ print(left_synapses)
 # print(left_synapses)
 
 
-right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount)
+right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount) * 0.1
 print(right_synapses)
 
 visible = input_sample
@@ -98,7 +98,7 @@ output = np.random.randint(0, 2, size=output_neurons_amount)
 # -----------------------------
 # אסטרטגיה (Strategy)
 # -----------------------------
-Temprature = 10
+Temprature = 1
 temp_decay = 0.95
 iterations = 1000
 
@@ -131,11 +131,11 @@ for iteration in range(iterations):
         Xk = 1 if np.random.rand() < Pk else 0
         output[k] = 1 if np.random.rand() < Xk else 0
     
-    current_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
+    current_energy = energy(visible, hidden, visible_bias, hidden_bias, left_synapses)
     print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
     Temprature *= temp_decay
     print("current Output State:", output)
-    draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+   # draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
 
     if Temprature < 0.01:
         break
