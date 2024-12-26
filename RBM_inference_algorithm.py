@@ -1,15 +1,13 @@
 import numpy as np
 from sklearn.datasets import load_iris
+from RBM_visualizer import draw_rbm_network
 import sys
+
 # -----------------------------
 # תנאים מוקדמים (Preconditions)
 # -----------------------------
 # 1. הפעלת אלגוריתם למידת מכונת בולצמן באופן מיטבי.
 # 2. שימוש בפרמטרים a, b, J המתקבלים מאלגוריתם הלמידה.
-
-# # Activation Function
-# def sigmoid(x):
-#     return 1 / (1 + np.exp(-x))
 
 # Energy Function
 def energy(v, h, o, a, b, c, J, W):
@@ -48,14 +46,14 @@ input_sample = iris.data[5]
 
 #np.random.seed(42)
 visible_neurons_amount = input_sample.shape[0]
-hidden_neurons_amount = 12
+hidden_neurons_amount = 12 #?!?!?!
 output_neurons_amount = 3
 
 visible_bias = np.random.rand(visible_neurons_amount)
 hidden_bias = np.random.rand(hidden_neurons_amount)
 output_bias = np.random.rand(output_neurons_amount)
 
-left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount)
+left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) #why always 52?
 print(left_synapses)
 
 # left_synapses = np.zeros((visible_neurons_amount, hidden_neurons_amount))
@@ -88,7 +86,9 @@ iterations = 1000
 print("Initial Visible State:", visible)
 print("Initial Hidden State:", hidden)
 print("Initial Output State:", output)
-sys.exit(1)
+draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+
+# sys.exit(1)
 for iteration in range(iterations):
     # Hidden Layer Update (Steps A-D)
     for j in range(hidden_neurons_amount):
@@ -116,6 +116,8 @@ for iteration in range(iterations):
     print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
     Temprature *= temp_decay
     print("current Output State:", output)
+    draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+
     if Temprature < 0.01:
         break
 
@@ -135,3 +137,5 @@ species_mapping = {
 
 predicted_species = species_mapping.get(tuple(output), 'Unknown')
 print(f"Predicted Iris Species: {predicted_species}")
+
+draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
