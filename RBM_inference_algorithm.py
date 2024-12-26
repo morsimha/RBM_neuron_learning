@@ -6,20 +6,25 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 # Energy Function
-def energy(v, h, a, b, J):
+def energy(v, h, o, a, b, c, J, W):
     """
     Calculate the energy of the Boltzmann Machine.
     v: Visible layer (array of visible neuron states)
     h: Hidden layer (array of hidden neuron states)
+    o: Output layer (array of output neuron states)
     a: Biases for visible neurons
     b: Biases for hidden neurons
+    c: Biases for output neurons
     J: Weights between visible and hidden neurons
+    W: Weights between hidden and output neurons
     """
     term1 = -np.sum(a * v)  # Bias of visible neurons
     term2 = -np.sum(b * h)  # Bias of hidden neurons
-    term3 = -np.sum(v @ J * h)  # Interaction between visible and hidden neurons
+    term3 = -np.sum(c * o)  # Bias of output neurons
+    term4 = -np.sum(v @ J * h)  # Interaction between visible and hidden neurons
+    term5 = -np.sum(h @ W * o)  # Interaction between hidden and output neurons
     
-    return term1 + term2 + term3
+    return term1 + term2 + term3 + term4 + term5
 
 # Load Iris dataset
 orig_iris = load_iris()
@@ -44,60 +49,74 @@ input_sample = iris.data[5]
 
 # Initialize parameters
 np.random.seed(42)
-visible_neurons = input_sample.shape[0]  # 4 visible neurons (4 attributes)
-hidden_neurons = 3  # 3 hidden neurons as per the architecture
+visible_neurons_amount = input_sample.shape[0]  # 4 visible neurons (4 attributes)
+hidden_neurons_amount = 3  # 3 hidden neurons
+output_neurons_amount = 3  # 3 output neurons for species
 
 # Initialize biases and weights
-a = np.random.rand(visible_neurons)  # Bias for visible neurons
-b = np.random.rand(hidden_neurons)   # Bias for hidden neurons
-J = np.random.rand(visible_neurons, hidden_neurons)  # Weights between visible and hidden
+visible_bias = np.random.rand(visible_neurons_amount)  # Bias for visible neurons
+hidden_bias = np.random.rand(hidden_neurons_amount)   # Bias for hidden neurons
+output_bias = np.random.rand(output_neurons_amount)   # Bias for output neurons
+
+left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount)  # Weights between visible and hidden
+right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount)  # Weights between hidden and output
 
 # Initialize neuron states randomly
-v = input_sample  # Visible neurons set to the input sample
-h = np.random.randint(0, 2, size=hidden_neurons)  # Hidden neurons initialized randomly (binary states)
+visible = input_sample  # Visible neurons set to the input sample
+hidden = np.random.randint(0, 2, size=hidden_neurons_amount)  # Hidden neurons initialized randomly (binary states)
+output = np.random.randint(0, 2, size=output_neurons_amount)  # Output neurons initialized randomly (binary states)
 
 # Print biases and synapse values
 print("Visible Neuron Biases (a):")
-print(a)
+print(visible_bias)
 print("\nHidden Neuron Biases (b):")
-print(b)
-print("\nSynapse Weights (J):")
-print(J)
-
-# Print the energy function with variable placeholders
-energy_formula = "E(v, h) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(sum(J_ij * v_i * h_j))"
-print("\nEnergy Function Formula:")
-print(energy_formula)
+print(hidden_bias)
+print("\nOutput Neuron Biases (c):")
+print(output_bias)
+print("\nLeft Synapse Weights (J):")
+print(left_synapses)
+print("\Right Synapse Weights (W):")
+print(right_synapses)
 
 # Inference Algorithm
-T = 1.0  # Initial temperature
+Temprature = 1.0  # Initial temperature
 temp_decay = 0.95  # Temperature decay factor
-iterations = 100
+iterations = 1000
 
 for iteration in range(iterations):
     # Update hidden neurons
-    for j in range(hidden_neurons):
-        delta_E = b[j] + np.sum(J[:, j] * v)
-        h[j] = 1 if np.random.rand() < sigmoid(delta_E / T) else 0
+    for j in range(hidden_neurons_amount):
+        delta_E = hidden_bias[j] + np.sum(left_synapses[:, j] * visible)
+        hidden[j] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
     
-    # Update visible neurons
-    for i in range(visible_neurons):
-        delta_E = a[i] + np.sum(J[i, :] * h)
-        v[i] = 1 if np.random.rand() < sigmoid(delta_E / T) else 0
+    # Update output neurons
+    for k in range(output_neurons_amount):
+        delta_E = output_bias[k] + np.sum(right_synapses[:, k] * hidden)
+        output[k] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
+    
+    # # Update visible neurons
+    # for i in range(visible_neurons_amount):
+    #     delta_E = a[i] + np.sum(J[i, :] * h)
+    #     v[i] = 1 if np.random.rand() < sigmoid(delta_E / T) else 0
     
     # Calculate current energy
-    current_energy = energy(v, h, a, b, J)
-    print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {T}")
+    current_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
+    print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
     
     # Reduce temperature
-    T *= temp_decay
+    Temprature *= temp_decay
+
+    # print("current Visible State:", visible)
+    # print("current Hidden State:", hidden)
+    print("current Output State:", output)
     
     # Check convergence (simple energy stabilization check)
-    if T < 0.01:
+    if Temprature < 0.01:
         break
 
-print("\nFinal Visible State:", v)
-print("Final Hidden State:", h)
+print("\nFinal Visible State:", visible)
+print("Final Hidden State:", hidden)
+print("Final Output State:", output)
 print(f"Final Energy: {current_energy}")
 
 # Prediction Step
@@ -107,5 +126,5 @@ species_mapping = {
     (0, 0, 1): 'virginica'
 }
 
-predicted_species = species_mapping.get(tuple(h), 'Unknown')
+predicted_species = species_mapping.get(tuple(output), 'Unknown')
 print(f"Predicted Iris Species: {predicted_species}")
