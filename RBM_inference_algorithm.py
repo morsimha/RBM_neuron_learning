@@ -7,9 +7,9 @@ import sys
 # 1. הפעלת אלגוריתם למידת מכונת בולצמן באופן מיטבי.
 # 2. שימוש בפרמטרים a, b, J המתקבלים מאלגוריתם הלמידה.
 
-# Activation Function
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+# # Activation Function
+# def sigmoid(x):
+#     return 1 / (1 + np.exp(-x))
 
 # Energy Function
 def energy(v, h, o, a, b, c, J, W):
@@ -46,9 +46,9 @@ def discretize_attributes(data):
 iris.data = discretize_attributes(iris.data)
 input_sample = iris.data[5]
 
-np.random.seed(42)
+#np.random.seed(42)
 visible_neurons_amount = input_sample.shape[0]
-hidden_neurons_amount = 3
+hidden_neurons_amount = 12
 output_neurons_amount = 3
 
 visible_bias = np.random.rand(visible_neurons_amount)
@@ -56,7 +56,23 @@ hidden_bias = np.random.rand(hidden_neurons_amount)
 output_bias = np.random.rand(output_neurons_amount)
 
 left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount)
+print(left_synapses)
+
+# left_synapses = np.zeros((visible_neurons_amount, hidden_neurons_amount))
+# for i in range(visible_neurons_amount):
+#     if i < 3:
+#         left_synapses[i, :3] = np.random.rand(3)
+#     elif 3 <= i < 6:
+#         left_synapses[i, 3:6] = np.random.rand(3)
+#     elif 6 <= i < 9:
+#         left_synapses[i, 6:9] = np.random.rand(3)
+#     else:
+#         left_synapses[i, 9:12] = np.random.rand(3)
+# print(left_synapses)
+
+
 right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount)
+print(right_synapses)
 
 visible = input_sample
 hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
@@ -65,7 +81,7 @@ output = np.random.randint(0, 2, size=output_neurons_amount)
 # -----------------------------
 # אסטרטגיה (Strategy)
 # -----------------------------
-Temprature = 1.0
+Temprature = 10
 temp_decay = 0.95
 iterations = 1000
 
@@ -77,12 +93,24 @@ for iteration in range(iterations):
     # Hidden Layer Update (Steps A-D)
     for j in range(hidden_neurons_amount):
         delta_E = hidden_bias[j] + np.sum(left_synapses[:, j] * visible)
-        hidden[j] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
+    #    hidden[j] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
+        Pk = 1 / (1 + np.exp(-delta_E / Temprature))
+        Xk = 1 if np.random.rand() < Pk else 0
+        hidden[j] = Xk
+    
+    # for j in range(hidden_neurons_amount):
+    #     Pk = 1 / (1 + np.exp(-delta_E / Temprature))
+    #     hidden[j] = 1 if np.random.rand() < Pk else 0
     
     # Output Layer Update (Steps A-D)
     for k in range(output_neurons_amount):
         delta_E = output_bias[k] + np.sum(right_synapses[:, k] * hidden)
-        output[k] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
+        # output[k] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
+    
+    # for k in range(output_neurons_amount):
+        Pk = 1 / (1 + np.exp(-delta_E / Temprature))
+        Xk = 1 if np.random.rand() < Pk else 0
+        output[k] = 1 if np.random.rand() < Xk else 0
     
     current_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
     print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
