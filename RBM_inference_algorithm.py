@@ -3,36 +3,16 @@ from sklearn.datasets import load_iris
 from RBM_visualizer import draw_rbm_network
 import sys
 
-# -----------------------------
-# תנאים מוקדמים (Preconditions)
-# -----------------------------
-# 1. הפעלת אלגוריתם למידת מכונת בולצמן באופן מיטבי.
-# 2. שימוש בפרמטרים a, b, J המתקבלים מאלגוריתם הלמידה.
-
 # Energy Function
-def energy(v, h, a, b, J):
-    """
-    Calculate the energy of the Boltzmann Machine.
-    v: Visible layer (array of visible neuron states)
-    h: Hidden layer (array of hidden neuron states)
-    a: Biases for visible neurons
-    b: Biases for hidden neurons
-    J: Weights between visible and hidden neurons
-    """
-    term1 = -np.sum(a * v)  # Bias of visible neurons
-    term2 = -np.sum(b * h)  # Bias of hidden neurons
-    term3 = -np.sum(v @ J * h)  # Interaction between visible and hidden neurons
-    
-    return term1 + term2 + term3
+# E(v, h) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(v_i * h_j * W_ij)
+# the left and right synapses are calculated separately
+def energy(v, h, o, a, b, c, Ji, Jk):
+    term1 = np.sum(a * v)  #  visible neurons * Bias
+    term1_1 = np.sum(c * o)  #  outputs visible neurons * Bias
+    term2 = np.sum(b * h)  #  hidden neurons * Bias
+    term3 = np.sum(v @ Ji * h) + np.sum(Jk @ o * h) # Interaction between synapses, visible and hidden neurons
+    return -term1 - term1_1 - term2 - term3
 
-# -----------------------------
-# אתחול (Initialization)
-# -----------------------------
-# 1. קלט הנתונים והכנת הפרמטרים הדרושים.
-# -----------------------------
-# אתחול (Initialization)
-# -----------------------------
-# 1. קלט הנתונים והכנת הפרמטרים הדרושים.
 orig_iris = load_iris()
 iris = load_iris()
 
@@ -50,102 +30,89 @@ def discretize_attributes(data):
                 discretized_data[j, i * 2:i * 2 + 2] = [0, 1]
             else:
                 discretized_data[j, i * 2:i * 2 + 2] = [1, 0]
-        categories = np.digitize(column, thresholds)
-        for j, value in enumerate(categories):
-            if value == 0:
-                discretized_data[j, i * 2:i * 2 + 2] = [0, 0]
-            elif value == 1:
-                discretized_data[j, i * 2:i * 2 + 2] = [0, 1]
-            else:
-                discretized_data[j, i * 2:i * 2 + 2] = [1, 0]
     return discretized_data
 
 iris.data = discretize_attributes(iris.data)
 input_sample = iris.data[5]
 
-#np.random.seed(42)
 visible_neurons_amount = input_sample.shape[0]
-hidden_neurons_amount = 12 #?!?!?!
+hidden_neurons_amount = 12
 output_neurons_amount = 3
 
 visible_bias = np.random.rand(visible_neurons_amount)
 hidden_bias = np.random.rand(hidden_neurons_amount)
 output_bias = np.random.rand(output_neurons_amount)
 
-left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) * 0.1
-print(left_synapses)
+left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) # 8x12 matrix
+right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount)# 12x3 matrix
+# right_synapses = np.zeros((hidden_neurons_amount, output_neurons_amount)) # 12x3 matrix
 
-# left_synapses = np.zeros((visible_neurons_amount, hidden_neurons_amount))
-# for i in range(visible_neurons_amount):
-#     if i < 3:
-#         left_synapses[i, :3] = np.random.rand(3)
-#     elif 3 <= i < 6:
-#         left_synapses[i, 3:6] = np.random.rand(3)
-#     elif 6 <= i < 9:
-#         left_synapses[i, 6:9] = np.random.rand(3)
-#     else:
-#         left_synapses[i, 9:12] = np.random.rand(3)
-# print(left_synapses)
-
-
-right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount) * 0.1
-print(right_synapses)
 
 visible = input_sample
 hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
 output = np.random.randint(0, 2, size=output_neurons_amount)
 
-# -----------------------------
-# אסטרטגיה (Strategy)
-# -----------------------------
 Temprature = 1
 temp_decay = 0.95
 iterations = 1000
+energy_threshold = 0.01
+neuron_change_threshold = 1
+energy_change_threshold = 0.01
+energy_change_window = 2
+
+previous_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
+energy_changes = []
 
 print("Initial Visible State:", visible)
 print("Initial Hidden State:", hidden)
 print("Initial Output State:", output)
 draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
 
-# sys.exit(1)
 for iteration in range(iterations):
+    hidden_changes = 0
+    output_changes = 0
+    
     # Hidden Layer Update (Steps A-D)
     for j in range(hidden_neurons_amount):
         delta_E = hidden_bias[j] + np.sum(left_synapses[:, j] * visible)
-    #    hidden[j] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
         Pk = 1 / (1 + np.exp(-delta_E / Temprature))
         Xk = 1 if np.random.rand() < Pk else 0
+        if hidden[j] != Xk:
+            hidden_changes += 1
         hidden[j] = Xk
-    
-    # for j in range(hidden_neurons_amount):
-    #     Pk = 1 / (1 + np.exp(-delta_E / Temprature))
-    #     hidden[j] = 1 if np.random.rand() < Pk else 0
     
     # Output Layer Update (Steps A-D)
     for k in range(output_neurons_amount):
         delta_E = output_bias[k] + np.sum(right_synapses[:, k] * hidden)
-        # output[k] = 1 if np.random.rand() < sigmoid(delta_E / Temprature) else 0
-    
-    # for k in range(output_neurons_amount):
         Pk = 1 / (1 + np.exp(-delta_E / Temprature))
         Xk = 1 if np.random.rand() < Pk else 0
-        output[k] = 1 if np.random.rand() < Xk else 0
+        if output[k] != Xk:
+            output_changes += 1
+        output[k] = Xk
     
-    current_energy = energy(visible, hidden, visible_bias, hidden_bias, left_synapses)
+    current_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
+    energy_changes.append(abs(previous_energy - current_energy))
+    previous_energy = current_energy
+    draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+
+    
     print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
     Temprature *= temp_decay
-    print("current Output State:", output)
-   # draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
-
+    print("Current Output State:", output)
+    
     if Temprature < 0.01:
         break
+    
+    if hidden_changes + output_changes < neuron_change_threshold:
+        print("Stopping early due to small number of neuron changes.")
+        break
+    
+    if len(energy_changes) > energy_change_window:
+        recent_energy_changes = energy_changes[-energy_change_window:]
+        if max(recent_energy_changes) < energy_change_threshold:
+            print("Stopping early due to small energy changes.")
+            break
 
-# -----------------------------
-# תחנה עצירה (Stop Condition)
-# -----------------------------
-# -----------------------------
-# תחנה עצירה (Stop Condition)
-# -----------------------------
 print("\nFinal Visible State:", visible)
 print("Final Hidden State:", hidden)
 print("Final Output State:", output)
