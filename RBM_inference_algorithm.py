@@ -39,13 +39,14 @@ visible_neurons_amount = input_sample.shape[0]
 hidden_neurons_amount = 12
 output_neurons_amount = 3
 
-visible_bias = np.random.rand(visible_neurons_amount)
-hidden_bias = np.random.rand(hidden_neurons_amount)
-output_bias = np.random.rand(output_neurons_amount)
+# Initialize biases to small random values
+visible_bias = np.random.normal(0, 0.1, visible_neurons_amount)
+hidden_bias = np.random.normal(0, 0.1, hidden_neurons_amount)
+output_bias = np.random.normal(0, 0.1, output_neurons_amount)
 
-left_synapses = np.random.rand(visible_neurons_amount, hidden_neurons_amount) # 8x12 matrix
-right_synapses = np.random.rand(hidden_neurons_amount, output_neurons_amount)# 12x3 matrix
-# right_synapses = np.zeros((hidden_neurons_amount, output_neurons_amount)) # 12x3 matrix
+# Normalize synapse weights
+left_synapses = np.random.normal(0, 0.1, (visible_neurons_amount, hidden_neurons_amount))
+right_synapses = np.random.normal(0, 0.1, (hidden_neurons_amount, output_neurons_amount))
 
 
 visible = input_sample
@@ -53,7 +54,7 @@ hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
 output = np.random.randint(0, 2, size=output_neurons_amount)
 
 Temprature = 1
-temp_decay = 0.95
+temp_decay = 0.99  # Slow decay to allow more randomness initially
 iterations = 1000
 energy_threshold = 0.01
 neuron_change_threshold = 1
@@ -93,7 +94,7 @@ for iteration in range(iterations):
     current_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
     energy_changes.append(abs(previous_energy - current_energy))
     previous_energy = current_energy
-    draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+   # draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
 
     
     print(f"Iteration {iteration + 1}, Energy: {current_energy}, Temperature: {Temprature}")
