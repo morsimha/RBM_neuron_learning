@@ -1,61 +1,7 @@
 import numpy as np
 from sklearn.datasets import load_iris
 from RBM_visualizer import draw_rbm_network
-import sys
-
-# Energy Function
-# Expanding the energy function from the book, to represent the seperation between visibile neurions
-# E(v, h, o) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(c_k * o_k) - sum(v_i * h_j * W_ij) - sum(h_j * o_k * W_jk)
-def energy(v, h, o, a, b, c, Ji, Jk):
-    term1 = np.sum(a * v)  # Visible neurons * Bias
-    term2 = np.sum(b * h)  # Hidden neurons * Bias
-    term3 = np.sum(c * o)  # Output neurons * Bias
-    term4 = np.sum(v @ Ji * h)  # Interaction between visible and hidden neurons
-    term5 = np.sum(h @ Jk * o)  # Interaction between hidden and output neurons
-    return -term1 - term2 - term3 - term4 - term5
-
-orig_iris = load_iris()
-iris = load_iris()
-
-def discretize_attributes(data):
-    discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
-    names = ["sepal length", "sepal width", "petal length", "petal width"]
-    for i in range(data.shape[1]):
-        column = data[:, i]
-        thresholds = np.percentile(column, [33.33, 66.67])
-        categories = np.digitize(column, thresholds)
-        for j, value in enumerate(categories):
-            if value == 0:
-                discretized_data[j, i * 2:i * 2 + 2] = [0, 0]
-            elif value == 1:
-                discretized_data[j, i * 2:i * 2 + 2] = [0, 1]
-            else:
-                discretized_data[j, i * 2:i * 2 + 2] = [1, 0]
-    return discretized_data
-
-iris.data = discretize_attributes(iris.data)
-input_sample = iris.data[5]
-print
-print("Input Sample - iris.data[5]:", orig_iris.data[5])
-
-visible_neurons_amount = input_sample.shape[0]
-hidden_neurons_amount = 12
-output_neurons_amount = 3
-
-# Initialize biases to small random values
-visible_bias = np.random.normal(0, 0.1, visible_neurons_amount)
-hidden_bias = np.random.normal(0, 0.1, hidden_neurons_amount)
-output_bias = np.random.normal(0, 0.1, output_neurons_amount)
-
-# Normalize synapse weights
-# Initialize synapses to small random values inbetween -0.1 and 0.1
-left_synapses = np.random.normal(0, 0.1, (visible_neurons_amount, hidden_neurons_amount))
-right_synapses = np.random.normal(0, 0.1, (hidden_neurons_amount, output_neurons_amount))
-# print("Left Synapses:", left_synapses)
-# print("Right Synapses:", right_synapses)
-visible = input_sample
-hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
-output = np.random.randint(0, 2, size=output_neurons_amount)
+from utils import discretize_attributes, energy, initialize_random_parameters
 
 Temprature = 1
 temp_decay = 0.99  # Slow decay to allow more randomness initially
@@ -64,6 +10,25 @@ energy_threshold = 0.01
 neuron_change_threshold = 1
 energy_change_threshold = 0.01
 energy_change_window = 2
+
+visible_neurons_amount = 8 # Based on discretized Iris data
+hidden_neurons_amount = 12 # the idea was that each visible neuron would project to a fitting hidden neuron 
+output_neurons_amount = 3 # One for each Iris species
+
+orig_iris = load_iris()
+iris = load_iris()
+
+iris.data = discretize_attributes(iris.data)
+
+visible_bias, hidden_bias, output_bias, left_synapses, right_synapses = initialize_random_parameters(
+    visible_neurons_amount, hidden_neurons_amount, output_neurons_amount)
+
+input_sample = iris.data[5]
+print("Input Sample - iris.data[5]:", orig_iris.data[5])
+visible = input_sample
+
+hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
+output = np.random.randint(0, 2, size=output_neurons_amount)
 
 previous_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
 energy_changes = []
