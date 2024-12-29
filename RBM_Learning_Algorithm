@@ -1,0 +1,87 @@
+import numpy as np
+from sklearn.datasets import load_iris
+from RBM_visualizer import draw_rbm_network
+
+# --- PARAMETERS ---
+learning_rate = 0.1  # η
+iterations = 1000
+visible_neurons_amount = 8  # Based on discretized Iris data
+hidden_neurons_amount = 12
+output_neurons_amount = 3
+
+# --- ENERGY FUNCTION ---
+def energy(v, h, o, a, b, c, Ji, Jk):
+    term1 = np.sum(a * v)  # Visible bias
+    term2 = np.sum(b * h)  # Hidden bias
+    term3 = np.sum(c * o)  # Output bias
+    term4 = np.sum(v @ Ji * h) + np.sum(Jk @ o * h)
+    return -term1 - term2 - term3 - term4
+
+# --- LOAD AND PREPROCESS DATA ---
+def discretize_attributes(data):
+    discretized_data = np.zeros((data.shape[0], data.shape[1] * 2))
+    for i in range(data.shape[1]):
+        column = data[:, i]
+        thresholds = np.percentile(column, [33.33, 66.67])
+        categories = np.digitize(column, thresholds)
+        for j, value in enumerate(categories):
+            if value == 0:
+                discretized_data[j, i * 2:i * 2 + 2] = [0, 0]
+            elif value == 1:
+                discretized_data[j, i * 2:i * 2 + 2] = [0, 1]
+            else:
+                discretized_data[j, i * 2:i * 2 + 2] = [1, 0]
+    return discretized_data
+
+# Load dataset
+iris = load_iris()
+iris.data = discretize_attributes(iris.data)
+dataset = iris.data
+
+# --- INITIALIZE PARAMETERS ---
+visible_bias = np.random.normal(0, 0.1, visible_neurons_amount)
+hidden_bias = np.random.normal(0, 0.1, hidden_neurons_amount)
+output_bias = np.random.normal(0, 0.1, output_neurons_amount)
+
+left_synapses = np.random.normal(0, 0.1, (visible_neurons_amount, hidden_neurons_amount))
+right_synapses = np.random.normal(0, 0.1, (hidden_neurons_amount, output_neurons_amount))
+# --- LEARNING LOOP ---
+for iteration in range(iterations):
+    # Choose a random sample
+    sample_index = np.random.randint(0, dataset.shape[0])
+    visible = dataset[sample_index]
+    hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
+    output = np.random.randint(0, 2, size=output_neurons_amount)
+  #  draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+
+    # Positive Phase (Data-Dependent Expectation)
+    P_hidden = 1 / (1 + np.exp(-hidden_bias - np.dot(visible, left_synapses)))
+    hidden = (np.random.rand(hidden_neurons_amount) < P_hidden).astype(int)
+    
+    # Negative Phase (Reconstruction)
+    P_visible = 1 / (1 + np.exp(-visible_bias - np.dot(hidden, left_synapses.T)))
+    visible_reconstructed = (np.random.rand(visible_neurons_amount) < P_visible).astype(int)
+    
+    P_hidden_reconstructed = 1 / (1 + np.exp(-hidden_bias - np.dot(visible_reconstructed, left_synapses)))
+    hidden_reconstructed = (np.random.rand(hidden_neurons_amount) < P_hidden_reconstructed).astype(int)
+    
+    # Update Parameters
+    for i in range(visible_neurons_amount):
+        visible_bias[i] += learning_rate * (visible[i] - visible_reconstructed[i])
+    
+    for j in range(hidden_neurons_amount):
+        hidden_bias[j] += learning_rate * (P_hidden[j] - P_hidden_reconstructed[j])
+        for i in range(visible_neurons_amount):
+            left_synapses[i, j] += learning_rate * (visible[i] * P_hidden[j] - visible_reconstructed[i] * P_hidden_reconstructed[j])
+    
+    # Optional: Draw RBM Network State
+    if iteration % 100 == 0:
+  #      draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
+        print(f"Iteration {iteration}, Energy: {energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses):.4f}")
+
+# Final State
+print("\nTraining Completed")
+print("Final Visible Bias:", visible_bias)
+print("Final Hidden Bias:", hidden_bias)
+print("Final Synapses:", left_synapses)
+draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)

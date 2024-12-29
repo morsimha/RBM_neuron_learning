@@ -4,14 +4,15 @@ from RBM_visualizer import draw_rbm_network
 import sys
 
 # Energy Function
-# E(v, h) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(v_i * h_j * W_ij)
-# the left and right synapses are calculated separately
+# Expanding the energy function from the book, to represent the seperation between visibile neurions
+# E(v, h, o) = -sum(a_i * v_i) - sum(b_j * h_j) - sum(c_k * o_k) - sum(v_i * h_j * W_ij) - sum(h_j * o_k * W_jk)
 def energy(v, h, o, a, b, c, Ji, Jk):
-    term1 = np.sum(a * v)  #  visible neurons * Bias
-    term1_1 = np.sum(c * o)  #  outputs visible neurons * Bias
-    term2 = np.sum(b * h)  #  hidden neurons * Bias
-    term3 = np.sum(v @ Ji * h) + np.sum(Jk @ o * h) # Interaction between synapses, visible and hidden neurons
-    return -term1 - term1_1 - term2 - term3
+    term1 = np.sum(a * v)  # Visible neurons * Bias
+    term2 = np.sum(b * h)  # Hidden neurons * Bias
+    term3 = np.sum(c * o)  # Output neurons * Bias
+    term4 = np.sum(v @ Ji * h)  # Interaction between visible and hidden neurons
+    term5 = np.sum(h @ Jk * o)  # Interaction between hidden and output neurons
+    return -term1 - term2 - term3 - term4 - term5
 
 orig_iris = load_iris()
 iris = load_iris()
@@ -34,6 +35,8 @@ def discretize_attributes(data):
 
 iris.data = discretize_attributes(iris.data)
 input_sample = iris.data[5]
+print
+print("Input Sample - iris.data[5]:", orig_iris.data[5])
 
 visible_neurons_amount = input_sample.shape[0]
 hidden_neurons_amount = 12
@@ -45,10 +48,11 @@ hidden_bias = np.random.normal(0, 0.1, hidden_neurons_amount)
 output_bias = np.random.normal(0, 0.1, output_neurons_amount)
 
 # Normalize synapse weights
+# Initialize synapses to small random values inbetween -0.1 and 0.1
 left_synapses = np.random.normal(0, 0.1, (visible_neurons_amount, hidden_neurons_amount))
 right_synapses = np.random.normal(0, 0.1, (hidden_neurons_amount, output_neurons_amount))
-
-
+# print("Left Synapses:", left_synapses)
+# print("Right Synapses:", right_synapses)
 visible = input_sample
 hidden = np.random.randint(0, 2, size=hidden_neurons_amount)
 output = np.random.randint(0, 2, size=output_neurons_amount)
@@ -64,7 +68,7 @@ energy_change_window = 2
 previous_energy = energy(visible, hidden, output, visible_bias, hidden_bias, output_bias, left_synapses, right_synapses)
 energy_changes = []
 
-print("Initial Visible State:", visible)
+print("Initial Visible State:", visible , output)
 print("Initial Hidden State:", hidden)
 print("Initial Output State:", output)
 draw_rbm_network(visible, hidden, output, left_synapses, right_synapses)
